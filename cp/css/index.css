@@ -1,0 +1,38 @@
+@font-face{
+	font-family: flower;
+	src: url('../fonts/lovelyfonts/Fflowers-v5.03-9797E33C501E135A76041110B3FD885E.ttf');
+}
+
+.logo{
+	width:60px;
+	height: 60px;
+}
+
+.br {
+	border-radius: 50px;
+	-moz-border-radius: 50px;
+	-webkit-border-radius: 50px;
+}
+
+.bgcolor{
+	background-color: #f89c03;
+	color: #fff;
+}
+
+.bgblue{
+	background-color: #3c8dbc;
+	color: #fff;
+}
+
+.bgblue > li > a{
+	color: #fff;
+}
+
+.flower{
+	font-family: flower;
+}
+
+.navbar-default .navbar-nav > .open > a, .navbar-default .navbar-nav > .open > a:focus, .navbar-default .navbar-nav > .open > a:hover {
+    color: #fff;
+    background-color: #3c8dbc;
+}
