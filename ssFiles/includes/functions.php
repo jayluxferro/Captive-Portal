@@ -89,13 +89,25 @@
 
 		function checkIfLoggedIn(){
 			if(isset($_SESSION['vsoftadmin']) && isset($_SESSION['lock']) && $_SESSION['lock']==0){
-				$this->redirect("index.php");
+				$login = $this->getFullDetailsPid($_SESSION['vsoftadmin'], "login");
+				if(intval($login[4])==0){
+					$this->redirect("index.php");
+				}else{
+					$this->redirect("https://sperixlabs.org");
+				}
 			}
 		}
 
 		function checkIfNotLoggedIn(){
 			if(!isset($_SESSION['vsoftadmin']) || !isset($_SESSION['lock']) || $_SESSION['lock']==1){
 				$this->redirect("login.php");
+			}else{
+				$login = $this->getFullDetailsPid($_SESSION['vsoftadmin'], "login");
+				if(intval($login[4])==0){
+					//$this->redirect("index.php");
+				}else{
+					$this->redirect("https://sperixlabs.org");
+				}
 			}
 		}
 
@@ -298,6 +310,8 @@
 				$sql="select * from ".$table." where id=?";
 			}elseif($table=='studentspay'){
 				$sql="select * from students where student_id=?";
+			}elseif($table == "login1"){
+				$sql = "select * from login where pid=?";
 			}else{
 				$sql="select * from ".$table." where pid=?";
 			}
@@ -336,7 +350,7 @@
 		function verifyAdmin($username,$password){
 			$username=$this->sanitize($username);
 			$password=sha1($this->sanitize($password));
-			$sql="select * from login where username=? and password=?";
+			$sql="select * from login where username=? and password=? limit 1";
 			$result=$this->con->prepare($sql);
 			$result->bindParam("s",$username);
 			$result->bindParam("s",$password);
@@ -344,11 +358,34 @@
 			if($result->rowCount() >=1 ){
 				//authentication successful
 				$details=$this->getFullDetails($username, "login");
-				$_SESSION['vsoftadmin']=$details[1];
-				$_SESSION['lock']=0;
-				$this->updateLastLogin($details[1]);
-				$this->displayMsg("LogIn successful...", 1);
-				$this->redirect("index.php");
+				//checking if user is admin or ordinary
+				if(intval($details[4])==0){
+					//redirect to main page
+					$_SESSION['vsoftadmin']=$details[1];
+					$_SESSION['lock']=0;
+					$this->updateLastLogin($details[1]);
+					$this->displayMsg("LogIn successful...", 1);
+					$this->redirect("index.php");
+				}else{
+					//redirect to google
+					$_SESSION['vsoftadmin']=$details[1];
+					$_SESSION['lock']=0;
+					$this->updateLastLogin($details[1]);
+					//adding to firewall
+					$arp = "/usr/sbin/arp";
+					$users = "/var/lib/users";
+					$mac = shell_exec("$arp -a ".$_SERVER['REMOTE_ADDR']);
+					preg_match('/..:..:..:..:..:../',$mac , $matches);
+					@$mac = $matches[0];
+					// Add PC to the firewall
+					exec("sudo iptables -I internet 1 -t mangle -m mac --mac-source $mac -j RETURN");
+					// The following line removes connection tracking for the PC
+					// This clears any previous (incorrect) route info for the redirection
+					exec("rmtrack ".$_SERVER['REMOTE_ADDR']);
+					sleep(1);
+					$this->displayMsg("Log In successful", 1);
+					$this->redirect("https://www.sperixlabs.org");
+				}
 			}else{
 				$this->displayMsg("LogIn failed...", 0);
 				$this->redirect("login.php");
@@ -779,6 +816,7 @@
 				$data.="<td>
 					<div class='row' style='margin: 0px; padding: 0px;'>
 							<center>
+								<!--<button type='button' onclick=\"view('".$row['id']."','login','?users&permissions')\" class='btn btn-xs btn-warning br'><span class='glyphicon glyphicon-plus'></span></button>-->
 								<a href='#".$row['pid']."toggle' data-toggle='modal' ";
 								if($row['status']==1){
 									$data.="class='btn btn-xs btn-success br tooltip-bottom' title='Click to deactivate'><span class='glyphicon glyphicon-eye-open'></span>";
@@ -786,7 +824,7 @@
 									$data.="class='btn btn-xs btn-warning br tooltip-bottom' title='Click to activate'><span class='glyphicon glyphicon-eye-close'></span>";
 								}
 								$data.="</a>
-								<button type='button' class='btn btn-xs btn-info br tooltip-bottom' title='View/Edit Details' onclick=\"view('".$row['pid']."','login','?users&edit')\"><span class='glyphicon glyphicon-pencil'></span></button>
+								<button type='button' class='btn btn-xs btn-info br tooltip-bottom' title='View/Edit Details' onclick=\"view('".$row['pid']."','login1','?users&edit')\"><span class='glyphicon glyphicon-pencil'></span></button>
 								<a href='#".$row['pid']."delete' data-toggle='modal' class='btn btn-xs btn-danger br tooltip-bottom' title='Delete User Account'><span class='glyphicon glyphicon-remove-sign'></span></a>
 							</center>
 					</div>
